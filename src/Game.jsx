@@ -9,6 +9,7 @@ export default function DreamXIGame() {
   const [error, setError] = useState(null);
   const [matchDetails, setMatchDetails] = useState(null); // State for match details
   const [teamSquads, setTeamSquads] = useState([]); // State for team squads
+  const [selectedPlayers, setSelectedPlayers] = useState({ player1: [], player2: [] }); // State for selected players by both players
 
   // Fetch today's match details
   useEffect(() => {
@@ -66,10 +67,19 @@ export default function DreamXIGame() {
       const team1Squad = await getTeamSquad(matchDetails.teams[0]);
       const team2Squad = await getTeamSquad(matchDetails.teams[1]);
 
-      // Update the state with the fetched squad data
+      // Sort the squads based on roles (e.g., Allrounder, Batsman, Bowler)
+      const sortByRole = (squad) => {
+        return squad.sort((a, b) => {
+          // You can modify the role order as per your preference
+          const roleOrder = ['Batsman', 'Bowler', 'Allrounder', 'Wicketkeeper'];
+          return roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role);
+        });
+      };
+
+      // Update the state with the fetched and sorted squad data
       setTeamSquads([
-        { team: matchDetails.teams[0], squad: team1Squad },
-        { team: matchDetails.teams[1], squad: team2Squad },
+        { team: matchDetails.teams[0], squad: sortByRole(team1Squad) },
+        { team: matchDetails.teams[1], squad: sortByRole(team2Squad) },
       ]);
 
       console.log("Squads:", team1Squad, team2Squad);
@@ -79,6 +89,24 @@ export default function DreamXIGame() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle player selection
+  const handlePlayerSelection = (player, playerIndex) => {
+    setSelectedPlayers((prevSelectedPlayers) => {
+      const newSelection = [...prevSelectedPlayers[`player${playerIndex}`]];
+      if (newSelection.includes(player)) {
+        // Remove the player if already selected
+        const updatedSelection = newSelection.filter((selectedPlayer) => selectedPlayer !== player);
+        return { ...prevSelectedPlayers, [`player${playerIndex}`]: updatedSelection };
+      } else {
+        // Add the player if not already selected
+        if (newSelection.length < 6) {
+          newSelection.push(player);
+        }
+        return { ...prevSelectedPlayers, [`player${playerIndex}`]: newSelection };
+      }
+    });
   };
 
   return (
@@ -107,35 +135,72 @@ export default function DreamXIGame() {
       {/* Display Team Squads in Table */}
       {teamSquads.length > 0 && (
         <div style={{ marginTop: "20px" }}>
-          <h2>Team Squads</h2>
+          <h2>Select Players</h2>
 
-          {teamSquads.map((teamData, index) => (
-            <div key={index} style={{ marginBottom: "30px" }}>
-              <h3>{teamData.team} Squad</h3>
-              {teamData.squad ? (
-                <table border="1" style={{ margin: "0 auto", width: "80%", marginTop: "10px" }}>
+          <div style={{ display: "flex", justifyContent: "space-evenly" }}>
+            {[1, 2].map((playerIndex) => (
+              <div key={playerIndex} style={{ width: "45%" }}>
+                <h3>Player {playerIndex} Selection</h3>
+                <table border="1" style={{ margin: "0 auto", width: "100%" }}>
                   <thead>
                     <tr>
                       <th>Name</th>
                       <th>Role</th>
                       <th>Country</th>
+                      <th>Select</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {teamData.squad.map((player, i) => (
-                      <tr key={i}>
-                        <td>{player.name}</td>
-                        <td>{player.role}</td>
-                        <td>{player.country}</td>
-                      </tr>
+                    {teamSquads.flatMap((teamData) => (
+                      teamData.squad.map((player, index) => (
+                        <tr key={index}>
+                          <td>{player.name}</td>
+                          <td>{player.role}</td>
+                          <td>{player.country}</td>
+                          <td>
+                            <button
+                              onClick={() => handlePlayerSelection(player, playerIndex)}
+                              disabled={selectedPlayers[`player${playerIndex}`].length >= 6 && !selectedPlayers[`player${playerIndex}`].includes(player)}
+                            >
+                              {selectedPlayers[`player${playerIndex}`].includes(player) ? "Selected" : "Select"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     ))}
                   </tbody>
                 </table>
-              ) : (
-                <p>Loading squad...</p>
-              )}
+              </div>
+            ))}
+          </div>
+
+          {/* Display 3x2 Table for Selected Players */}
+          <div style={{ marginTop: "30px" }}>
+            <h3>Selected Players</h3>
+            <div style={{ display: "flex", justifyContent: "space-evenly" }}>
+              {[1, 2].map((playerIndex) => (
+                <div key={playerIndex} style={{ width: "45%" }}>
+                  <h4>Player {playerIndex}'s Team</h4>
+                  <table border="1" style={{ margin: "0 auto", width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedPlayers[`player${playerIndex}`].map((player, index) => (
+                        <tr key={index}>
+                          <td>{player.name}</td>
+                          <td>{player.role}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       )}
 
