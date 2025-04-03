@@ -17,7 +17,7 @@ export default function DreamXIGame() {
       setError(null);
 
       try {
-        const response = await fetch("http://localhost:10000/todays-match");
+        const response = await fetch(`${API_BASE}/todays-match`);
         if (!response.ok) throw new Error("Failed to fetch today's match");
 
         const data = await response.json();
