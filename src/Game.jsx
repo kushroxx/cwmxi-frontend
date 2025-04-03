@@ -8,6 +8,7 @@ export default function DreamXIGame() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [matchDetails, setMatchDetails] = useState(null); // State for match details
+  const [teamSquads, setTeamSquads] = useState([]); // State for team squads
 
   // Fetch today's match details
   useEffect(() => {
@@ -16,7 +17,7 @@ export default function DreamXIGame() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE}/todays-match`);
+        const response = await fetch("http://localhost:10000/todays-match");
         if (!response.ok) throw new Error("Failed to fetch today's match");
 
         const data = await response.json();
@@ -33,40 +34,40 @@ export default function DreamXIGame() {
     fetchTodaysMatch();
   }, []); // Empty dependency array to run only once on mount
 
-  // Start the game
-  const startGame = async () => {
-    setLoading(true);
-    setError(null);
-
+  // Fetch squad information for a team
+  const getTeamSquad = async (teamName) => {
     try {
-      const response = await fetch(`${API_BASE}/start-game`);
-      if (!response.ok) throw new Error("Failed to start the game");
-
+      const response = await fetch(`${API_BASE}/get_team_squad?team=${teamName}`);
+      if (!response.ok) throw new Error(`Failed to fetch squad for ${teamName}`);
       const data = await response.json();
-      console.log("Teams Data:", data);
-      setTeams(data);
+      return data.squad; // Return squad data for the team
     } catch (err) {
-      console.error("Error starting game:", err);
-      setError("An error occurred while starting the game.");
-    } finally {
-      setLoading(false);
+      console.error(`Error fetching squad for ${teamName}:`, err);
+      return null; // Return null if an error occurs
     }
   };
 
-  // Simulate the game
-  const simulateGame = async () => {
+  // Start the game and fetch squad data for both teams
+  const startGame = async () => {
     setLoading(true);
     setError(null);
+    setTeamSquads([]); // Reset previous team squads
 
     try {
-      const response = await fetch(`${API_BASE}/simulate-game`);
-      if (!response.ok) throw new Error("Failed to simulate the game");
+      // Fetch squad for Team 1
+      const team1Squad = await getTeamSquad(matchDetails.teams[0]);
+      const team2Squad = await getTeamSquad(matchDetails.teams[1]);
 
-      const data = await response.json();
-      setScores(data);
+      // Update the state with the fetched squad data
+      setTeamSquads([
+        { team: matchDetails.teams[0], squad: team1Squad },
+        { team: matchDetails.teams[1], squad: team2Squad },
+      ]);
+
+      console.log("Squads:", team1Squad, team2Squad);
     } catch (err) {
-      console.error("Error simulating game:", err);
-      setError("An error occurred while simulating the game.");
+      console.error("Error starting the game:", err);
+      setError("An error occurred while fetching team squads.");
     } finally {
       setLoading(false);
     }
@@ -74,18 +75,10 @@ export default function DreamXIGame() {
 
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Mini Dream XI</h1>
+      <h1>Choti Wale Mama XI</h1>
       
       <button onClick={startGame} disabled={loading}>
         {loading ? "Starting Game..." : "Start Game"}
-      </button>
-
-      <button
-        onClick={simulateGame}
-        disabled={!teams || loading}
-        style={{ marginLeft: "10px" }}
-      >
-        {loading ? "Simulating..." : "Simulate Game"}
       </button>
 
       {error && <div style={{ color: "red", marginTop: "10px" }}>{error}</div>}
@@ -103,23 +96,38 @@ export default function DreamXIGame() {
         </div>
       )}
 
-      {teams && (
+      {/* Display Team Squads in Table */}
+      {teamSquads.length > 0 && (
         <div style={{ marginTop: "20px" }}>
-          <h2>Selected Teams</h2>
-          <div>
-            <h3>{teams.team1.name}</h3>
-            <ul>
-              {teams.team1.players.map((player, index) => (
-                <li key={index}>{player.name} - {player.role}</li>
-              ))}
-            </ul>
-            <h3>{teams.team2.name}</h3>
-            <ul>
-              {teams.team2.players.map((player, index) => (
-                <li key={index}>{player.name} - {player.role}</li>
-              ))}
-            </ul>
-          </div>
+          <h2>Team Squads</h2>
+
+          {teamSquads.map((teamData, index) => (
+            <div key={index} style={{ marginBottom: "30px" }}>
+              <h3>{teamData.team} Squad</h3>
+              {teamData.squad ? (
+                <table border="1" style={{ margin: "0 auto", width: "80%", marginTop: "10px" }}>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Country</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamData.squad.map((player, i) => (
+                      <tr key={i}>
+                        <td>{player.name}</td>
+                        <td>{player.role}</td>
+                        <td>{player.country}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>Loading squad...</p>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
