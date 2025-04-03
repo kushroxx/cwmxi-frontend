@@ -112,7 +112,8 @@ export default function DreamXIGame() {
 
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Choti Wale Mama XI</h1>
+      <h1>Cricket Royale</h1>
+      <h2>A 2 Player 6vs6 battle royale</h2>
       
       <button onClick={startGame} disabled={loading}>
         {loading ? "Starting Game..." : "Start Game"}
