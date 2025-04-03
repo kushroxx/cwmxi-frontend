@@ -37,8 +37,16 @@ export default function DreamXIGame() {
   // Fetch squad information for a team
   const getTeamSquad = async (teamName) => {
     try {
-      const response = await fetch(`${API_BASE}/get_team_squad?team=${teamName}`);
+      const response = await fetch(`${API_BASE}/get_team_squad`, {
+        method: "POST", // Change to POST request
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ squad_name: teamName }), // Pass squad_name in the request body
+      });
+
       if (!response.ok) throw new Error(`Failed to fetch squad for ${teamName}`);
+
       const data = await response.json();
       return data.squad; // Return squad data for the team
     } catch (err) {
