@@ -9,7 +9,7 @@ export default function DreamXIGame() {
   const [error, setError] = useState(null);
   const [matchDetails, setMatchDetails] = useState(null); // State for match details
   const [teamSquads, setTeamSquads] = useState([]); // State for team squads
-  const [selectedPlayers, setSelectedPlayers] = useState({ player1: [], player2: [] }); // State for selected players by both players
+  const [selectedPlayers, setSelectedPlayers] = useState({ kkr: [], srh: [] }); // State for selected players
 
   // Fetch today's match details
   useEffect(() => {
@@ -63,9 +63,9 @@ export default function DreamXIGame() {
     setTeamSquads([]); // Reset previous team squads
 
     try {
-      // Fetch squad for Team 1
-      const team1Squad = await getTeamSquad(matchDetails.teams[0]);
-      const team2Squad = await getTeamSquad(matchDetails.teams[1]);
+      // Fetch squad for KKR and SRH
+      const kkrSquad = await getTeamSquad("KKR");
+      const srhSquad = await getTeamSquad("SRH");
 
       // Sort the squads based on roles (e.g., Allrounder, Batsman, Bowler)
       const sortByRole = (squad) => {
@@ -78,11 +78,12 @@ export default function DreamXIGame() {
 
       // Update the state with the fetched and sorted squad data
       setTeamSquads([
-        { team: matchDetails.teams[0], squad: sortByRole(team1Squad) },
-        { team: matchDetails.teams[1], squad: sortByRole(team2Squad) },
+        { team: "KKR", squad: sortByRole(kkrSquad) },
+        { team: "SRH", squad: sortByRole(srhSquad) },
       ]);
 
-      console.log("Squads:", team1Squad, team2Squad);
+      console.log("KKR Squad:", kkrSquad);
+      console.log("SRH Squad:", srhSquad);
     } catch (err) {
       console.error("Error starting the game:", err);
       setError("An error occurred while fetching team squads.");
@@ -92,19 +93,19 @@ export default function DreamXIGame() {
   };
 
   // Handle player selection
-  const handlePlayerSelection = (player, playerIndex) => {
+  const handlePlayerSelection = (player, team) => {
     setSelectedPlayers((prevSelectedPlayers) => {
-      const newSelection = [...prevSelectedPlayers[`player${playerIndex}`]];
+      const newSelection = [...prevSelectedPlayers[team]];
       if (newSelection.includes(player)) {
         // Remove the player if already selected
         const updatedSelection = newSelection.filter((selectedPlayer) => selectedPlayer !== player);
-        return { ...prevSelectedPlayers, [`player${playerIndex}`]: updatedSelection };
+        return { ...prevSelectedPlayers, [team]: updatedSelection };
       } else {
         // Add the player if not already selected
         if (newSelection.length < 6) {
           newSelection.push(player);
         }
-        return { ...prevSelectedPlayers, [`player${playerIndex}`]: newSelection };
+        return { ...prevSelectedPlayers, [team]: newSelection };
       }
     });
   };
@@ -135,12 +136,12 @@ export default function DreamXIGame() {
       {/* Display Team Squads in Table */}
       {teamSquads.length > 0 && (
         <div style={{ marginTop: "20px" }}>
-          <h2>Select Players</h2>
+          <h2>Select Players for KKR and SRH</h2>
 
           <div style={{ display: "flex", justifyContent: "space-evenly" }}>
-            {[1, 2].map((playerIndex) => (
-              <div key={playerIndex} style={{ width: "45%" }}>
-                <h3>Player {playerIndex} Selection</h3>
+            {teamSquads.map((teamData, index) => (
+              <div key={index} style={{ width: "45%" }}>
+                <h3>{teamData.team} Squad</h3>
                 <table border="1" style={{ margin: "0 auto", width: "100%" }}>
                   <thead>
                     <tr>
@@ -151,22 +152,20 @@ export default function DreamXIGame() {
                     </tr>
                   </thead>
                   <tbody>
-                    {teamSquads.flatMap((teamData) => (
-                      teamData.squad.map((player, index) => (
-                        <tr key={index}>
-                          <td>{player.name}</td>
-                          <td>{player.role}</td>
-                          <td>{player.country}</td>
-                          <td>
-                            <button
-                              onClick={() => handlePlayerSelection(player, playerIndex)}
-                              disabled={selectedPlayers[`player${playerIndex}`].length >= 6 && !selectedPlayers[`player${playerIndex}`].includes(player)}
-                            >
-                              {selectedPlayers[`player${playerIndex}`].includes(player) ? "Selected" : "Select"}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                    {teamData.squad.map((player, index) => (
+                      <tr key={index}>
+                        <td>{player.name}</td>
+                        <td>{player.role}</td>
+                        <td>{player.country}</td>
+                        <td>
+                          <button
+                            onClick={() => handlePlayerSelection(player, teamData.team.toLowerCase())}
+                            disabled={selectedPlayers[teamData.team.toLowerCase()].length >= 6 && !selectedPlayers[teamData.team.toLowerCase()].includes(player)}
+                          >
+                            {selectedPlayers[teamData.team.toLowerCase()].includes(player) ? "Selected" : "Select"}
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -174,13 +173,13 @@ export default function DreamXIGame() {
             ))}
           </div>
 
-          {/* Display 3x2 Table for Selected Players */}
+          {/* Display 3x3 Grid for Selected Players */}
           <div style={{ marginTop: "30px" }}>
             <h3>Selected Players</h3>
             <div style={{ display: "flex", justifyContent: "space-evenly" }}>
-              {[1, 2].map((playerIndex) => (
-                <div key={playerIndex} style={{ width: "45%" }}>
-                  <h4>Player {playerIndex}'s Team</h4>
+              {["kkr", "srh"].map((team, index) => (
+                <div key={index} style={{ width: "45%" }}>
+                  <h4>{team === "kkr" ? "KKR's Selected Squad" : "SRH's Selected Squad"}</h4>
                   <table border="1" style={{ margin: "0 auto", width: "100%" }}>
                     <thead>
                       <tr>
@@ -189,7 +188,7 @@ export default function DreamXIGame() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedPlayers[`player${playerIndex}`].map((player, index) => (
+                      {selectedPlayers[team].map((player, index) => (
                         <tr key={index}>
                           <td>{player.name}</td>
                           <td>{player.role}</td>
